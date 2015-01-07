@@ -15,11 +15,13 @@ class WebkitDownloadHandler(HttpDownloadHandler):
         if 'renderjs' in request.meta:
             d = defer.Deferred()
             d.addErrback(log.err, spider=spider)
+            log.msg("!!!!!make gtk window")
             webview = self._get_webview()
-            webview.connect('load-finished', lambda v, f: self._load_finished(d, v, f))
+            webview.connect('load-finished', lambda v, f: self._load_finished(d, v, f, request.url))
             win = gtk.Window()
             win.add(webview)
             win.show_all()
+            log.msg("!!!!!show gtk window")
             webview.open(request.url)
             return d
         else:
@@ -34,12 +36,16 @@ class WebkitDownloadHandler(HttpDownloadHandler):
         #props.set_property('enable-frame-flattening', True)
         return webview
 
-    def _load_finished(self, deferred, view, frame):
+    def _load_finished(self, deferred, view, frame, url):
         if frame != view.get_main_frame():
             return
+        log.msg("load finished")
         ctx = jswebkit.JSContext(frame.get_global_context())
-        url = ctx.EvaluateScript('window.location.href')
+#        url = ctx.EvaluateScript('window.location.href')
+#        log.msg("eval url")
+        
         html = ctx.EvaluateScript('document.documentElement.innerHTML')
+        log.msg("eval html")
         response = HtmlResponse(url, encoding='utf-8', body=html.encode('utf-8'))
         deferred.callback(response)
 
